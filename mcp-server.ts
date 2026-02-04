@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 /**
  * Swagger MCP 服务器 - 独立版本
  * 可以在 Cursor 等 MCP 客户端中直接使用
@@ -411,10 +409,10 @@ class SwaggerMcpServer {
 function loadConfig(): { swaggerUrl: string; token?: string } {
   // 1. 尝试读取项目配置文件
   const projectRoot = process.cwd();
-  
+
   // 获取当前文件所在目录（支持源码和构建后的路径）
   const currentDir = __dirname || dirname(fileURLToPath(import.meta.url));
-  
+
   const configFiles = [
     join(projectRoot, '.swagger-mcp.json'),
     join(projectRoot, 'swagger-mcp.config.json'),

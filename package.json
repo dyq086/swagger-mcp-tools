@@ -1,6 +1,6 @@
 {
   "name": "swagger-mcp-tools",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Swagger MCP Server - 一个用于 Cursor 等 MCP 客户端的 Swagger API 文档查询工具",
   "type": "module",
   "main": "./dist/mcp-server.js",
