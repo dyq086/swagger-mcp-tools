@@ -39,6 +39,17 @@ class SwaggerMcpServer {
    * 加载 Swagger 文档，带缓存机制
    */
   private async loadSwagger(): Promise<SwaggerDocument> {
+    // 检查 URL 是否配置
+    if (!this.swaggerUrl) {
+      throw new Error(
+        'Swagger URL 未配置。请设置以下任一配置：\n' +
+          '1. 在项目根目录创建 .swagger-mcp.json 文件：\n' +
+          '   { "swaggerUrl": "http://your-api/swagger-docs", "token": "optional-token" }\n' +
+          '2. 设置环境变量 SWAGGER_URL\n' +
+          '3. 设置项目特定的环境变量 SWAGGER_URL_<PROJECT_NAME>',
+      );
+    }
+
     // 如果已有缓存的文档，直接返回
     if (this.swaggerDoc) {
       return this.swaggerDoc;
@@ -446,7 +457,6 @@ function loadConfig(): { swaggerUrl: string; token?: string } {
       const projectName = packageJson.name || packageJson.moduleAlias || '';
 
       if (projectName) {
-        // 将项目名称转换为环境变量格式（如 skechers-front-portal -> SKECHERS_FRONT_PORTAL）
         const envSuffix = projectName.toUpperCase().replace(/[^A-Z0-9]/g, '_');
         const projectSwaggerUrl = process.env[`SWAGGER_URL_${envSuffix}`];
         const projectToken =
@@ -474,8 +484,8 @@ function loadConfig(): { swaggerUrl: string; token?: string } {
 
 const { swaggerUrl: SWAGGER_URL, token: TOKEN } = loadConfig();
 
-// 创建服务器实例
-const swaggerServer = new SwaggerMcpServer(SWAGGER_URL, TOKEN);
+// 创建服务器实例（允许 URL 为 undefined，在使用时会检查）
+const swaggerServer = new SwaggerMcpServer(SWAGGER_URL || '', TOKEN);
 
 // 创建 MCP 服务器
 const server = new McpServer({
