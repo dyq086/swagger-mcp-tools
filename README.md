@@ -76,7 +76,7 @@ swagger-mcp-tools
   "mcpServers": {
     "swagger": {
       "command": "npx",
-      "args": ["swagger-mcp-tools"],
+      "args": ["swagger-mcp-tools@latest"],
       "env": {
         "SWAGGER_URL": "http://your-api.com/v3/api-docs",
         "SWAGGER_TOKEN": "your-token-here"
@@ -104,7 +104,7 @@ swagger-mcp-tools
   "mcpServers": {
     "swagger": {
       "command": "npx",
-      "args": ["swagger-mcp-tools"]
+      "args": ["swagger-mcp-tools@latest"]
     }
   }
 }
@@ -135,7 +135,7 @@ swagger-mcp-tools
   "mcpServers": {
     "swagger": {
       "command": "npx",
-      "args": ["swagger-mcp-tools"]
+      "args": ["swagger-mcp-tools@latest"]
     }
   }
 }
