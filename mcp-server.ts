@@ -24,6 +24,30 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+/**
+ * 从 __dirname 向上查找包含 .swagger-mcp.json 的项目根目录
+ */
+function findProjectRoot(startDir: string = __dirname): string {
+  let currentDir = startDir;
+
+  // 一直向上查找直到文件系统根目录
+  while (true) {
+    const swaggerConfigPath = join(currentDir, '.swagger-mcp.json');
+    if (existsSync(swaggerConfigPath)) {
+      return currentDir;
+    }
+    const parentDir = dirname(currentDir);
+    // 如果父目录和当前目录相同，说明已经到了根目录
+    if (parentDir === currentDir) {
+      break;
+    }
+    currentDir = parentDir;
+  }
+
+  // 如果找不到，返回启动目录
+  return process.cwd();
+}
+
 class SwaggerMcpServer {
   private swaggerUrl: string;
   private token?: string;
@@ -45,8 +69,7 @@ class SwaggerMcpServer {
         'Swagger URL 未配置。请设置以下任一配置：\n' +
           '1. 在项目根目录创建 .swagger-mcp.json 文件：\n' +
           '   { "swaggerUrl": "http://your-api/swagger-docs", "token": "optional-token" }\n' +
-          '2. 设置环境变量 SWAGGER_URL\n' +
-          '3. 设置项目特定的环境变量 SWAGGER_URL_<PROJECT_NAME>',
+          '2. 设置环境变量 SWAGGER_URL',
       );
     }
 
@@ -72,7 +95,6 @@ class SwaggerMcpServer {
         }
 
         const data = await res.json();
-        console.log(data);
         this.swaggerDoc = data as SwaggerDocument;
         return this.swaggerDoc;
       } catch (error) {
@@ -415,20 +437,15 @@ class SwaggerMcpServer {
 
 /**
  * 读取项目配置
- * 优先级：项目配置文件 > 项目名称环境变量 > 默认环境变量
+ * 优先级：项目配置文件 > 默认环境变量
  */
 function loadConfig(): { swaggerUrl: string; token?: string } {
   // 1. 尝试读取项目配置文件
-  const projectRoot = process.cwd();
-
-  // 获取当前文件所在目录（支持源码和构建后的路径）
-  const currentDir = __dirname || dirname(fileURLToPath(import.meta.url));
-
+  // 从当前文件位置向上查找项目根目录
+  const projectRoot = findProjectRoot();
   const configFiles = [
     join(projectRoot, '.swagger-mcp.json'),
     join(projectRoot, 'swagger-mcp.config.json'),
-    join(currentDir, '../../.swagger-mcp.json'),
-    join(currentDir, '../../swagger-mcp.config.json'),
   ];
 
   for (const configFile of configFiles) {
@@ -449,35 +466,9 @@ function loadConfig(): { swaggerUrl: string; token?: string } {
     }
   }
 
-  // 2. 尝试根据项目名称读取环境变量
-  try {
-    const packageJsonPath = join(projectRoot, 'package.json');
-    if (existsSync(packageJsonPath)) {
-      const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
-      const projectName = packageJson.name || packageJson.moduleAlias || '';
-
-      if (projectName) {
-        const envSuffix = projectName.toUpperCase().replace(/[^A-Z0-9]/g, '_');
-        const projectSwaggerUrl = process.env[`SWAGGER_URL_${envSuffix}`];
-        const projectToken =
-          process.env[`SWAGGER_TOKEN_${envSuffix}`] || process.env[`TOKEN_${envSuffix}`];
-
-        if (projectSwaggerUrl) {
-          console.error(`[Swagger MCP] 使用项目环境变量: ${projectName}`);
-          return {
-            swaggerUrl: projectSwaggerUrl,
-            token: projectToken,
-          };
-        }
-      }
-    }
-  } catch (error) {
-    console.error('[Swagger MCP] 读取项目配置失败:', error);
-  }
-
-  // 3. 使用默认环境变量
+  // 2. 使用默认环境变量
   return {
-    swaggerUrl: process.env.SWAGGER_URL,
+    swaggerUrl: process.env.SWAGGER_URL || '',
     token: process.env.SWAGGER_TOKEN || process.env.TOKEN,
   };
 }
@@ -505,7 +496,7 @@ server.registerTool(
       return {
         content: [
           {
-            type: 'text',
+            type: 'text' as const,
             text: JSON.stringify(modules, null, 2),
           },
         ],
@@ -514,7 +505,7 @@ server.registerTool(
       return {
         content: [
           {
-            type: 'text',
+            type: 'text' as const,
             text: JSON.stringify({
               error: error instanceof Error ? error.message : String(error),
             }),
@@ -534,13 +525,14 @@ server.registerTool(
       module: z.string().describe('模块名称'),
     },
   },
-  async ({ module }) => {
+  async (args: { module: string }) => {
+    const { module } = args;
     try {
       if (!module) {
         return {
           content: [
             {
-              type: 'text',
+              type: 'text' as const,
               text: JSON.stringify({ error: '模块名称不能为空' }),
             },
           ],
@@ -550,7 +542,7 @@ server.registerTool(
       return {
         content: [
           {
-            type: 'text',
+            type: 'text' as const,
             text: JSON.stringify(apis, null, 2),
           },
         ],
@@ -559,7 +551,7 @@ server.registerTool(
       return {
         content: [
           {
-            type: 'text',
+            type: 'text' as const,
             text: JSON.stringify({
               error: error instanceof Error ? error.message : String(error),
             }),
@@ -580,13 +572,14 @@ server.registerTool(
       method: z.string().describe('HTTP 方法，如 GET, POST, PUT, DELETE'),
     },
   },
-  async ({ path, method }) => {
+  async (args: any) => {
+    const { path, method } = args as { path: string; method: string };
     try {
       if (!path || !method) {
         return {
           content: [
             {
-              type: 'text',
+              type: 'text' as const,
               text: JSON.stringify({ error: '路径和方法不能为空' }),
             },
           ],
@@ -596,7 +589,7 @@ server.registerTool(
       return {
         content: [
           {
-            type: 'text',
+            type: 'text' as const,
             text: JSON.stringify(types, null, 2),
           },
         ],
@@ -605,7 +598,7 @@ server.registerTool(
       return {
         content: [
           {
-            type: 'text',
+            type: 'text' as const,
             text: JSON.stringify({
               error: error instanceof Error ? error.message : String(error),
             }),
@@ -620,8 +613,10 @@ server.registerTool(
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-
   console.error('Swagger MCP Server running on stdio');
+  const projectRoot = findProjectRoot();
+  console.error(`项目根目录: ${projectRoot}`);
+  console.error(`进程工作目录: ${__dirname}`);
   console.error(`Swagger URL: ${SWAGGER_URL}`);
   if (TOKEN) {
     console.error(`Token: *** (已设置)`);

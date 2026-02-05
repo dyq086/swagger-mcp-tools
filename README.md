@@ -25,7 +25,18 @@
 
 ## 安装
 
-### 方式一：npm 安装（推荐）
+### 方式一：使用 npx（推荐，无需安装）
+
+无需全局安装，直接使用 npx 运行：
+
+```bash
+# 无需安装，直接使用 npx
+npx swagger-mcp-tools
+```
+
+### 方式二：全局安装
+
+如果需要全局安装：
 
 ```bash
 npm install -g swagger-mcp-tools
@@ -33,7 +44,7 @@ npm install -g swagger-mcp-tools
 yarn global add swagger-mcp-tools
 ```
 
-### 方式二：从源码构建
+### 方式三：从源码构建
 
 ```bash
 git clone https://github.com/dyq086/swagger-mcp-tools.git
@@ -64,7 +75,8 @@ swagger-mcp-tools
 {
   "mcpServers": {
     "swagger": {
-      "command": "swagger-mcp-tools",
+      "command": "npx",
+      "args": ["swagger-mcp-tools"],
       "env": {
         "SWAGGER_URL": "http://your-api.com/v3/api-docs",
         "SWAGGER_TOKEN": "your-token-here"
@@ -91,29 +103,8 @@ swagger-mcp-tools
 {
   "mcpServers": {
     "swagger": {
-      "command": "swagger-mcp-tools"
-    }
-  }
-}
-```
-
-### 3. 项目名称环境变量
-
-根据项目的 `package.json` 中的 `name` 或 `moduleAlias` 字段，自动查找对应的环境变量。
-
-例如，如果项目名称是 `my-project`，则会查找：
-- `SWAGGER_URL_MY_PROJECT`
-- `SWAGGER_TOKEN_MY_PROJECT` 或 `TOKEN_MY_PROJECT`
-
-```json
-{
-  "mcpServers": {
-    "swagger": {
-      "command": "swagger-mcp-tools",
-      "env": {
-        "SWAGGER_URL_MY_PROJECT": "http://your-api.com/v3/api-docs",
-        "SWAGGER_TOKEN_MY_PROJECT": "your-token-here"
-      }
+      "command": "npx",
+      "args": ["swagger-mcp-tools"]
     }
   }
 }
@@ -124,19 +115,13 @@ swagger-mcp-tools
 配置加载优先级从高到低：
 
 1. **项目配置文件** - `.swagger-mcp.json` 或 `swagger-mcp.config.json`
-2. **项目名称环境变量** - `SWAGGER_URL_<PROJECT_NAME>` 和 `SWAGGER_TOKEN_<PROJECT_NAME>`
-3. **默认环境变量** - `SWAGGER_URL` 和 `SWAGGER_TOKEN`
+2. **默认环境变量** - `SWAGGER_URL` 和 `SWAGGER_TOKEN`
 
 ## 使用示例
 
 ### 在 Cursor 中使用
 
-1. 安装包：
-```bash
-npm install -g swagger-mcp-tools
-```
-
-2. 在项目根目录创建 `.swagger-mcp.json`：
+1. 在项目根目录创建 `.swagger-mcp.json`：
 ```json
 {
   "swaggerUrl": "http://localhost:8080/v3/api-docs",
@@ -144,18 +129,21 @@ npm install -g swagger-mcp-tools
 }
 ```
 
-3. 配置 Cursor MCP（`~/.cursor/mcp.json` 或项目 `.cursor/mcp.json`）：
+2. 配置 Cursor MCP（`~/.cursor/mcp.json` 或项目 `.cursor/mcp.json`）：
 ```json
 {
   "mcpServers": {
     "swagger": {
-      "command": "swagger-mcp-tools"
+      "command": "npx",
+      "args": ["swagger-mcp-tools"]
     }
   }
 }
 ```
 
-4. 重启 Cursor，现在你可以在 AI 对话中询问 API 相关信息了！
+3. 重启 Cursor，现在你可以在 AI 对话中询问 API 相关信息了！
+
+> 💡 **提示**：使用 `npx` 方式无需全局安装，npx 会自动下载并使用最新版本的包。
 
 ### 示例对话
 
