@@ -25,28 +25,21 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 /**
- * 从 __dirname 向上查找包含 .swagger-mcp.json 的项目根目录
+ * 日志记录器
+ * 使用 console.error 输出到 stderr，MCP 客户端会正确显示这些日志
  */
-function findProjectRoot(startDir: string = __dirname): string {
-  let currentDir = startDir;
+const logger = {
+  info: (message: string) => {
+    console.error(`[INFO] ${message}`);
+  },
+  error: (message: string) => {
+    console.error(`[ERROR] ${message}`);
+  },
+  debug: (message: string) => {
+    console.error(`[DEBUG] ${message}`);
+  },
+};
 
-  // 一直向上查找直到文件系统根目录
-  while (true) {
-    const swaggerConfigPath = join(currentDir, '.swagger-mcp.json');
-    if (existsSync(swaggerConfigPath)) {
-      return currentDir;
-    }
-    const parentDir = dirname(currentDir);
-    // 如果父目录和当前目录相同，说明已经到了根目录
-    if (parentDir === currentDir) {
-      break;
-    }
-    currentDir = parentDir;
-  }
-
-  // 如果找不到，返回启动目录
-  return process.cwd();
-}
 
 class SwaggerMcpServer {
   private swaggerUrl: string;
@@ -441,27 +434,36 @@ class SwaggerMcpServer {
  */
 function loadConfig(): { swaggerUrl: string; token?: string } {
   // 1. 尝试读取项目配置文件
-  // 从当前文件位置向上查找项目根目录
-  const projectRoot = findProjectRoot();
-  const configFiles = [
-    join(projectRoot, '.swagger-mcp.json'),
-    join(projectRoot, 'swagger-mcp.config.json'),
-  ];
+  // 直接使用 WORKSPACE_FOLDER_PATHS 作为项目根目录
+  const workspacePaths = process.env.WORKSPACE_FOLDER_PATHS;
+  if (workspacePaths) {
+    // WORKSPACE_FOLDER_PATHS 可能是多个路径，用分隔符分隔（通常是 : 或 ;）
+    const paths = workspacePaths.split(/[:;]/).filter((p) => p.trim());
+    if (paths.length > 0) {
+      const projectRoot = paths[0].trim();
+      if (existsSync(projectRoot)) {
+        const configFiles = [
+          join(projectRoot, '.swagger-mcp.json'),
+          join(projectRoot, 'swagger-mcp.config.json'),
+        ];
 
-  for (const configFile of configFiles) {
-    if (existsSync(configFile)) {
-      try {
-        const configContent = readFileSync(configFile, 'utf-8');
-        const config = JSON.parse(configContent);
-        if (config.swaggerUrl || config.SWAGGER_URL) {
-          console.error(`[Swagger MCP] 使用配置文件: ${configFile}`);
-          return {
-            swaggerUrl: config.swaggerUrl || config.SWAGGER_URL,
-            token: config.token || config.SWAGGER_TOKEN || config.TOKEN,
-          };
+        for (const configFile of configFiles) {
+          if (existsSync(configFile)) {
+            try {
+              const configContent = readFileSync(configFile, 'utf-8');
+              const config = JSON.parse(configContent);
+              if (config.swaggerUrl || config.SWAGGER_URL) {
+                logger.info(`[Swagger MCP] 使用配置文件: ${configFile}`);
+                return {
+                  swaggerUrl: config.swaggerUrl || config.SWAGGER_URL,
+                  token: config.token || config.SWAGGER_TOKEN || config.TOKEN,
+                };
+              }
+            } catch (error) {
+              logger.error(`[Swagger MCP] 读取配置文件失败 ${configFile}: ${error instanceof Error ? error.message : String(error)}`);
+            }
+          }
         }
-      } catch (error) {
-        console.error(`[Swagger MCP] 读取配置文件失败 ${configFile}:`, error);
       }
     }
   }
@@ -613,19 +615,30 @@ server.registerTool(
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error('Swagger MCP Server running on stdio');
-  const projectRoot = findProjectRoot();
-  console.error(`项目根目录: ${projectRoot}`);
-  console.error(`进程工作目录: ${__dirname}`);
-  console.error(`Swagger URL: ${SWAGGER_URL}`);
-  if (TOKEN) {
-    console.error(`Token: *** (已设置)`);
+  
+  // 记录启动信息
+  logger.info('Swagger MCP Server running on stdio');
+  
+  const workspacePaths = process.env.WORKSPACE_FOLDER_PATHS;
+  if (workspacePaths) {
+    const paths = workspacePaths.split(/[:;]/).filter((p) => p.trim());
+    if (paths.length > 0) {
+      logger.info(`项目根目录: ${paths[0].trim()}`);
+    }
   } else {
-    console.error(`Token: 未设置 (如果 API 需要认证，请设置 SWAGGER_TOKEN 环境变量)`);
+    logger.debug(`项目根目录: WORKSPACE_FOLDER_PATHS 未设置`);
+  }
+  
+  logger.debug(`当前环境变量: ${JSON.stringify(process.env)}`);
+  logger.info(`Swagger URL: ${SWAGGER_URL || '(未设置)'}`);
+  if (TOKEN) {
+    logger.info(`Token: *** (已设置)`);
+  } else {
+    logger.debug(`Token: 未设置 (如果 API 需要认证，请设置 SWAGGER_TOKEN 环境变量)`);
   }
 }
 
 main().catch((error) => {
-  console.error('Fatal error:', error);
+  logger.error(`Fatal error: ${error instanceof Error ? error.message : String(error)}`);
   process.exit(1);
 });

@@ -115,7 +115,22 @@ swagger-mcp-tools
 配置加载优先级从高到低：
 
 1. **项目配置文件** - `.swagger-mcp.json` 或 `swagger-mcp.config.json`
+   - 项目根目录查找优先级：
+     1. 环境变量 `SWAGGER_MCP_PROJECT_ROOT` 指定的目录（如果设置）
+     2. Cursor/IDE 环境变量 `WORKSPACE_FOLDER_PATHS`（自动获取，无需配置）
+     3. 从 `process.cwd()`（当前工作目录）向上查找（**默认，动态获取**）
+     4. 从模块目录向上查找
 2. **默认环境变量** - `SWAGGER_URL` 和 `SWAGGER_TOKEN`
+
+**项目根目录环境变量说明：**
+- `SWAGGER_MCP_PROJECT_ROOT`（可选）：
+  - **未设置**：自动使用 `WORKSPACE_FOLDER_PATHS` 或 `process.cwd()`，动态获取，无需配置
+  - `$CWD` 或 `$PWD`：显式使用当前工作目录
+  - 绝对路径：`/path/to/project`
+  - 相对路径：相对于当前工作目录的路径
+- `WORKSPACE_FOLDER_PATHS`（自动，无需配置）：
+  - Cursor 等 IDE 会自动提供此环境变量，指向当前打开的工作区路径
+  - 如果存在，会自动使用第一个路径作为项目根目录
 
 ## 使用示例
 
