@@ -58,6 +58,9 @@ class SwaggerMcpServer {
   private async loadSwagger(): Promise<SwaggerDocument> {
     // 检查 URL 是否配置
     if (!this.swaggerUrl) {
+      // 输出当前环境变量以便调试
+      console.error('[DEBUG] 当前环境变量:', JSON.stringify(process.env, null, 2));
+      
       throw new Error(
         'Swagger URL 未配置。请设置以下任一配置：\n' +
           '1. 在项目根目录创建 .swagger-mcp.json 文件：\n' +
